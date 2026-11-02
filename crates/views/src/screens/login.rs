@@ -267,10 +267,7 @@ impl LoginView {
             disabled,
             cancel,
         } = column;
-        let options: Vec<&SignIn> = options
-            .iter()
-            .filter(|option| !matches!(option, SignIn::Anonymous))
-            .collect();
+        let options: Vec<&SignIn> = options.iter().collect();
 
         div()
             .flex()
@@ -453,10 +450,16 @@ impl Render for LoginView {
                     }))
             })
             .collect::<Vec<_>>();
+        // The guest button below stands for one provider's anonymous session, so only another
+        // provider's column offers its own.
         let column = providers.into_iter().nth(self.tab).map(|info| Column {
             slug: info.slug,
             name: info.name,
-            options: info.options,
+            options: info
+                .options
+                .into_iter()
+                .filter(|option| guest != Some(info.slug) || !matches!(option, SignIn::Anonymous))
+                .collect(),
             web_sign_in: info.web_sign_in,
             disabled: pending,
             cancel: waiting && info.pending,

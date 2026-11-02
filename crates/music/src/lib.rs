@@ -27,6 +27,7 @@ pub mod potoken;
 pub mod progress;
 pub mod scrobble;
 mod sink;
+pub mod soundcloud;
 mod spectrum;
 pub mod spotify;
 mod stream;

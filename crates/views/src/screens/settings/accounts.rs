@@ -58,12 +58,13 @@ pub(super) struct Guest {
     active: bool,
 }
 
-/// Which sign-in methods a provider card lists. Anonymous never appears there, because guest
-/// mode has a card of its own, and a stored account is asked for nothing.
-fn offered(method: &SignIn, stored: bool) -> bool {
+/// Which sign-in methods a provider card lists. Anonymous appears only on a provider other than
+/// the one the guest card stands for, `guest`, and a stored account is asked for nothing.
+fn offered(method: &SignIn, stored: bool, guest: bool) -> bool {
     match method {
         SignIn::Default | SignIn::Secret | SignIn::Credentials { .. } => !stored,
-        SignIn::Anonymous | SignIn::Path(_) => false,
+        SignIn::Anonymous => !stored && !guest,
+        SignIn::Path(_) => false,
     }
 }
 
@@ -541,9 +542,10 @@ impl SettingsView {
         web_sign_in: bool,
         cx: &mut Context<Self>,
     ) {
+        let guest = self.guest(cx).is_some_and(|guest| guest.slug == slug);
         let methods: Vec<&SignIn> = options
             .iter()
-            .filter(|option| offered(option, false))
+            .filter(|option| offered(option, false, guest))
             .collect();
         let buttons: usize = methods
             .iter()
@@ -625,9 +627,10 @@ impl SettingsView {
             .providers()
             .find(|info| info.slug == slug)
             .is_some_and(|info| info.web_sign_in);
+        let guest = self.guest(cx).is_some_and(|guest| guest.slug == slug);
         let buttons = options
             .into_iter()
-            .filter(|option| offered(option, false))
+            .filter(|option| offered(option, false, guest))
             .flat_map(|method| {
                 self.method_buttons(slug, provider, method, web_sign_in, pending, cx)
             });
