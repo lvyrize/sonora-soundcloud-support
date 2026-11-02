@@ -1032,7 +1032,7 @@ impl Devices {
         if current.as_deref() != Some(&id) {
             return None;
         }
-        let local = music::is_local_id(&id);
+        let local = music::is_local_id(&id) || music::combined::is_companion_id(&id);
         let playing = playback.wants_playing();
         if playing && !self.claimed {
             self.claimed = true;

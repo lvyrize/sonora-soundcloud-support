@@ -717,7 +717,7 @@ impl Listening {
             track: queue
                 .current()
                 .and_then(|track| track.id.clone())
-                .filter(|id| !music::is_local_id(id)),
+                .filter(|id| !music::is_local_id(id) && !music::combined::is_companion_id(id)),
             playing: self.playback.read(cx).wants_playing(),
             upcoming: ids(queue.chosen_upcoming()),
         }
@@ -826,7 +826,7 @@ fn shareable(track: &Track) -> bool {
     track
         .id
         .as_deref()
-        .is_some_and(|id| !music::is_local_id(id))
+        .is_some_and(|id| !music::is_local_id(id) && !music::combined::is_companion_id(id))
 }
 
 /// The ids of the shareable tracks among the first `UPCOMING` of `tracks`.

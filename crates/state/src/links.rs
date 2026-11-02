@@ -124,14 +124,19 @@ impl Links {
         if session.is_pending() {
             return;
         }
-        let here = session.provider_slug() == Some(waiting.slug);
+        let beside = session.companion_slug() == Some(waiting.slug);
+        let here = beside || session.provider_slug() == Some(waiting.slug);
         let ready = matches!(
             session.state(),
             SessionState::SignedIn(_) | SessionState::Offline(_)
         );
         if here && ready {
             if let Some(waiting) = self.waiting.take() {
-                self.deliver(waiting.linked, cx);
+                let linked = match beside {
+                    true => music::combined::tag_linked(waiting.slug, waiting.linked),
+                    false => waiting.linked,
+                };
+                self.deliver(linked, cx);
             }
             return;
         }

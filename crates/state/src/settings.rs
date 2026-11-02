@@ -676,6 +676,8 @@ struct StateValues {
     repeat: Repeat,
     radio: bool,
     provider: String,
+    /// The slug of a second provider whose library and search sit beside the main one's.
+    companion: Option<String>,
     tables: HashMap<String, Layout>,
     sorting: HashMap<String, Option<Sorting>>,
     filters: HashMap<String, HashMap<String, FilterValue>>,
@@ -708,6 +710,7 @@ impl Default for StateValues {
             repeat: Repeat::Off,
             radio: true,
             provider: "spotify".to_owned(),
+            companion: None,
             tables: HashMap::new(),
             sorting: HashMap::new(),
             filters: HashMap::new(),
@@ -1234,6 +1237,11 @@ impl AppSettings {
 
     pub fn provider(&self) -> &str {
         &self.state.provider
+    }
+
+    /// The provider used beside the main one, when the listener picked one.
+    pub fn companion(&self) -> Option<&str> {
+        self.state.companion.as_deref()
     }
 
     pub fn local_folders(&self) -> &[PathBuf] {
@@ -2100,6 +2108,14 @@ impl AppSettings {
             return;
         }
         self.state.provider = provider;
+        self.schedule_state_save(cx);
+    }
+
+    pub fn set_companion(&mut self, companion: Option<String>, cx: &mut Context<Self>) {
+        if self.state.companion == companion {
+            return;
+        }
+        self.state.companion = companion;
         self.schedule_state_save(cx);
     }
 

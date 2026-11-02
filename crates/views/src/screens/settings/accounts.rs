@@ -412,11 +412,22 @@ impl SettingsView {
             cancel,
             error,
         } = account;
-        let status = active.then(|| t!("settings-provider-current"));
+        let session = self.session.read(cx);
+        let main = session.provider_name().filter(|_| !active);
+        let beside = session.chosen_companion(cx) == Some(slug);
+        let joined = session.companion_slug() == Some(slug);
+        let status = match (active, joined, main) {
+            (true, ..) => Some(t!("settings-provider-current")),
+            (false, true, Some(main)) => {
+                Some(t!("settings-provider-beside-status", provider = main))
+            }
+            _ => None,
+        };
         let offer = match (cancel, stored) {
             (true, _) => Offer::Cancel(self.cancel_button(slug, cx)),
             (false, true) => Offer::Choice {
                 leave: Some(self.sign_out_button(slug, slug, pending, cx)),
+                beside: main.map(|main| self.beside_button(slug, main, beside, pending, cx)),
             },
             (false, false) => Offer::SignIn,
         };
@@ -486,12 +497,44 @@ impl SettingsView {
             active,
             name: t!("login-guest-title"),
             status,
-            offer: Offer::Choice { leave },
+            offer: Offer::Choice {
+                leave,
+                beside: None,
+            },
             press: press.filter(|_| !pending),
             error: None,
             place,
         }
         .into_any_element()
+    }
+
+    /// The button that puts `slug` beside `main`, the provider in use, so both libraries and
+    /// both searches show at once, or takes it away again when it is already there.
+    fn beside_button(
+        &self,
+        slug: &'static str,
+        main: &'static str,
+        beside: bool,
+        pending: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let label = match beside {
+            true => t!("settings-provider-beside-off"),
+            false => t!("settings-provider-beside-on", provider = main),
+        };
+        Button::new(SharedString::from(format!("beside-{slug}")))
+            .label(label)
+            .small()
+            .outline()
+            .selected(beside)
+            .disabled(pending)
+            .on_click(cx.listener(move |this, _, _, cx| {
+                this.chosen = None;
+                let companion = (!beside).then_some(slug);
+                this.session
+                    .update(cx, |session, cx| session.set_companion(companion, cx));
+            }))
+            .into_any_element()
     }
 
     /// The button that stops a sign-in in flight.
@@ -892,7 +935,11 @@ fn line(theme: &Theme, step: Text) -> Pixels {
 pub(super) enum Offer {
     /// The radio saying whether the row is the one in use, with the sign out button before it
     /// when there is an account to leave.
-    Choice { leave: Option<AnyElement> },
+    Choice {
+        leave: Option<AnyElement>,
+        /// The button that puts the provider beside the one in use, on a row that is not it.
+        beside: Option<AnyElement>,
+    },
     /// A quiet "Sign in" for a provider with no account yet. The row's own click answers it.
     SignIn,
     /// The button that stops a sign-in in flight.
@@ -965,12 +1012,13 @@ impl RenderOnce for ProviderRow {
             (false, false) => theme.secondary_hover.opacity(0.),
         };
         let trailing = match offer {
-            Offer::Choice { leave } => {
+            Offer::Choice { leave, beside } => {
                 let shown = active || hover > 0.;
                 div()
                     .flex()
                     .items_center()
                     .gap_2()
+                    .children(beside)
                     .child(
                         div()
                             .flex()

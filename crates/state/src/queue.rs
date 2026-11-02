@@ -1296,7 +1296,9 @@ fn joins_manual<'a>(upcoming: impl Iterator<Item = &'a Entry>, at: usize) -> boo
 
 /// Whether a report to other devices carries `entry`, which it does for a provider song.
 fn reported(entry: &Entry) -> bool {
-    entry.id().is_some_and(|id| !music::is_local_id(id))
+    entry
+        .id()
+        .is_some_and(|id| !music::is_local_id(id) && !music::combined::is_companion_id(id))
 }
 
 /// Where the last `shown` reported songs of `past` begin, the part of the history a report
@@ -1352,7 +1354,9 @@ fn queue_uid() -> String {
 
 /// Excludes local files from the provider's queue report while retaining occurrence identities.
 fn connect_entry(entry: &Entry) -> Option<QueuedTrack> {
-    let id = entry.id().filter(|id| !music::is_local_id(id))?;
+    let id = entry
+        .id()
+        .filter(|id| !music::is_local_id(id) && !music::combined::is_companion_id(id))?;
     Some(QueuedTrack {
         id: id.to_owned(),
         uid: entry.uid.clone(),

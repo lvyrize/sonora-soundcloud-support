@@ -1255,7 +1255,7 @@ fn downloadable(track: &Track) -> bool {
         && track
             .id
             .as_deref()
-            .is_some_and(|id| !music::is_local_id(id))
+            .is_some_and(|id| !music::is_local_id(id) && !music::combined::is_companion_id(id))
 }
 
 /// What was downloaded from one provider, as read back from disk.

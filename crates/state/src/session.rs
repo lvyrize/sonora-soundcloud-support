@@ -117,6 +117,8 @@ pub struct Session {
     client: Option<Arc<dyn MusicApi>>,
     catalog: Option<Arc<CatalogSource>>,
     playback: Option<Arc<dyn PlaybackFactory>>,
+    /// The provider whose library sits beside the active one's in `client`, while it does.
+    companion: Option<usize>,
     shape: Shape,
     authenticated: bool,
     capabilities: Capabilities,
@@ -173,6 +175,7 @@ impl Session {
             client: None,
             catalog: None,
             playback: None,
+            companion: None,
             shape: Shape::Saved,
             authenticated: false,
             capabilities: Capabilities::NONE,
@@ -315,6 +318,10 @@ impl Session {
             return self.sign_out(cx);
         }
         self.providers[index].sign_out();
+        // a companion signed out of leaves the pair, which signs back in without it
+        if self.companion == Some(index) {
+            return self.set_companion(None, cx);
+        }
         cx.notify();
     }
 
@@ -335,6 +342,13 @@ impl Session {
         self.release(cx);
         self.active = Some(index);
         self.restore(cx);
+    }
+
+    fn index_of(&self, slug: Option<&str>) -> Option<usize> {
+        let slug = slug?;
+        self.providers
+            .iter()
+            .position(|provider| provider.slug() == slug)
     }
 
     pub fn provider_name(&self) -> Option<&'static str> {
@@ -377,6 +391,7 @@ impl Session {
         let mut slugs = Vec::new();
         if self.client.is_some() {
             slugs.extend(self.provider_slug());
+            slugs.extend(self.companion_slug());
         }
         if self.local_client.is_some() {
             slugs.push(self.local_slug());
@@ -390,10 +405,58 @@ impl Session {
 
     /// The provider an id belongs to, whichever shelf it sits on.
     pub fn provider_for(&self, id: &str) -> Option<&dyn MusicProvider> {
-        match music::is_local_id(id) {
-            true => Some(self.local_provider.as_ref()),
-            false => self.active.map(|index| self.providers[index].as_ref()),
+        if music::is_local_id(id) {
+            return Some(self.local_provider.as_ref());
         }
+        if let Some(companion) = self.companion
+            && let Some((slug, _)) = music::combined::split(id)
+            && self.providers[companion].slug() == slug
+        {
+            return Some(self.providers[companion].as_ref());
+        }
+        self.active.map(|index| self.providers[index].as_ref())
+    }
+
+    /// The provider whose library sits beside the active one's right now.
+    pub fn companion_slug(&self) -> Option<&'static str> {
+        Some(self.providers[self.companion?].slug())
+    }
+
+    /// The provider the listener asked for beside the active one, whether or not it is in use.
+    pub fn chosen_companion<'a>(&self, cx: &'a gpui::App) -> Option<&'a str> {
+        self.settings.read(cx).companion()
+    }
+
+    /// Puts `slug` beside the active provider, or takes the companion away with `None`, and
+    /// signs back in so the library and search pick the change up.
+    pub fn set_companion(&mut self, slug: Option<&str>, cx: &mut Context<Self>) {
+        if self.is_pending() {
+            return;
+        }
+        let slug = slug.map(str::to_owned);
+        self.settings
+            .update(cx, |settings, cx| settings.set_companion(slug, cx));
+        let Some(active) = self.active else {
+            return;
+        };
+        if matches!(self.state, SessionState::SignedIn(_)) {
+            self.release(cx);
+            self.active = Some(active);
+            self.restore(cx);
+        }
+    }
+
+    /// The provider to put beside `main`: the one the listener chose, when it is another one
+    /// and has an account stored.
+    fn companion_for(&self, main: usize, cx: &gpui::App) -> Option<Arc<dyn MusicProvider>> {
+        let slug = self.settings.read(cx).companion()?;
+        self.providers
+            .iter()
+            .enumerate()
+            .find(|(index, provider)| {
+                *index != main && provider.slug() == slug && provider.stored()
+            })
+            .map(|(_, provider)| provider.clone())
     }
 
     pub fn authenticated(&self) -> bool {
@@ -455,12 +518,22 @@ impl Session {
         cx.notify();
 
         let provider = self.providers[index].clone();
+        let companion = self.companion_for(index, cx);
         let io = self.io.clone();
         self.task = Some(cx.spawn(async move |this, cx| {
-            let restored = join(io.spawn(async move { provider.restore().await })).await;
+            let restored = join(io.spawn(async move {
+                match provider.restore().await? {
+                    Some(session) => Ok(Some(beside(session, companion).await)),
+                    None => Ok(None),
+                }
+            }))
+            .await;
 
             this.update(cx, |this, cx| match restored {
-                Ok(Some(session)) => this.signed_in(session, index, cx),
+                Ok(Some((session, joined))) => {
+                    this.companion = this.index_of(joined);
+                    this.signed_in(session, index, cx)
+                }
                 Ok(None) => this.fall_back(index, None, cx),
                 // An account that is only out of reach is kept, and the app carries on offline.
                 Err(error) if Failure::new(&error).offline() && this.stored_active() => {
@@ -546,6 +619,7 @@ impl Session {
         self.client = None;
         self.catalog = None;
         self.playback = None;
+        self.companion = None;
         cx.emit(SessionEvent::SignedOut);
 
         if let Some(index) = next {
@@ -615,18 +689,24 @@ impl Session {
         });
 
         let provider = self.providers[index].clone();
+        let companion = self.companion_for(index, cx);
         let io = self.io.clone();
         self.task = Some(cx.spawn(async move |this, cx| {
-            let authorized =
-                join(io.spawn(async move { provider.sign_in(method, prompt, input_rx).await }))
-                    .await;
+            let authorized = join(io.spawn(async move {
+                let session = provider.sign_in(method, prompt, input_rx).await?;
+                Ok(beside(session, companion).await)
+            }))
+            .await;
 
             this.update(cx, |this, cx| {
                 this.prompt_task = None;
                 this.input = None;
                 this.window = None;
                 match authorized {
-                    Ok(session) => this.signed_in(session, index, cx),
+                    Ok((session, joined)) => {
+                        this.companion = this.index_of(joined);
+                        this.signed_in(session, index, cx)
+                    }
                     Err(error) => this.failed(&error, cx),
                 }
             })
@@ -776,6 +856,7 @@ impl Session {
         self.attempt = 0;
         self.client = None;
         self.catalog = None;
+        self.companion = None;
         self.shape = Shape::Saved;
         self.authenticated = false;
         self.capabilities = Capabilities::NONE;
@@ -812,6 +893,7 @@ impl Session {
         self.client = None;
         self.catalog = None;
         self.playback = None;
+        self.companion = None;
         self.shape = Shape::Saved;
         self.authenticated = false;
         self.capabilities = Capabilities::NONE;
@@ -826,7 +908,10 @@ impl Session {
             .take()
             .is_some_and(|(held, profile)| held != index || profile.id != session.profile.id);
         if replaced {
+            // the companion that came with this session was set before the old one goes
+            let companion = self.companion;
             self.drop_previous_session(cx);
+            self.companion = companion;
         }
         self.active = Some(index);
         self.awaiting = None;
@@ -854,6 +939,7 @@ impl Session {
         self.client = None;
         self.catalog = None;
         self.playback = None;
+        self.companion = None;
         self.shape = Shape::Saved;
         self.authenticated = false;
         self.capabilities = Capabilities::NONE;
@@ -904,14 +990,24 @@ impl Session {
             wait.as_secs()
         );
         let provider = self.providers[active].clone();
+        let companion = self.companion_for(active, cx);
         let io = self.io.clone();
         self.reconnect = Some(cx.spawn(async move |this, cx| {
             cx.background_executor().timer(wait).await;
-            let restored = join(io.spawn(async move { provider.restore().await })).await;
+            let restored = join(io.spawn(async move {
+                match provider.restore().await? {
+                    Some(session) => Ok(Some(beside(session, companion).await)),
+                    None => Ok(None),
+                }
+            }))
+            .await;
             this.update(cx, |this, cx| {
                 this.reconnecting = false;
                 match restored {
-                    Ok(Some(session)) => this.reconnected(session, cx),
+                    Ok(Some((session, joined))) => {
+                        this.companion = this.index_of(joined);
+                        this.reconnected(session, cx)
+                    }
                     Ok(None) => log::warn!("session: nothing stored to reconnect with"),
                     Err(error) => log::warn!("session: cannot reconnect: {error:#}"),
                 }
@@ -970,6 +1066,7 @@ impl Session {
         self.client = None;
         self.catalog = None;
         self.playback = None;
+        self.companion = None;
         self.state = SessionState::Failed(failure);
         cx.notify();
         cx.emit(SessionEvent::SignedOut);
@@ -1166,6 +1263,32 @@ impl Session {
 }
 
 /// The failure a session kept offline on purpose reports, which reads as a lost network.
+/// Restores `companion` and puts it beside `main`, with the slug of the companion that joined.
+/// A companion that cannot be restored is left out, so the main provider comes up regardless.
+async fn beside(
+    main: ProviderSession,
+    companion: Option<Arc<dyn MusicProvider>>,
+) -> (ProviderSession, Option<&'static str>) {
+    let Some(companion) = companion else {
+        return (main, None);
+    };
+    let slug = companion.slug();
+    match companion.restore().await {
+        Ok(Some(other)) => {
+            log::info!("session: {slug} joins beside the main provider");
+            (music::combined::combine(main, slug, other), Some(slug))
+        }
+        Ok(None) => {
+            log::warn!("session: {slug} has nothing stored to join with");
+            (main, None)
+        }
+        Err(error) => {
+            log::warn!("session: {slug} could not join: {error:#}");
+            (main, None)
+        }
+    }
+}
+
 fn offline_mode() -> Failure {
     Failure {
         problem: Some(SignInProblem::Network),
