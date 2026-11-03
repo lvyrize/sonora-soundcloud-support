@@ -8,8 +8,8 @@ use anyhow::{Context as _, Result};
 const UNINSTALLER: &str = "unins000.exe";
 #[cfg(target_os = "windows")]
 const INSTALLER: &str = match cfg!(target_arch = "aarch64") {
-    true => "Sonora-Setup-arm64.exe",
-    false => "Sonora-Setup.exe",
+    true => "Sonora-SoundCloud-Setup-arm64.exe",
+    false => "Sonora-SoundCloud-Setup.exe",
 };
 /// Where Homebrew keeps the stable and the nightly cask, on Apple silicon and on Intel. Any of
 /// them existing means Homebrew owns /Applications/Sonora.app, though not a copy installed

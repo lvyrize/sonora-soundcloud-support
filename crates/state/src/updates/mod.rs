@@ -12,7 +12,9 @@ use sha2::{Digest as _, Sha256};
 use crate::{AppSettings, Io, join};
 use install::Install;
 
-const RELEASES: &str = "https://api.github.com/repos/sonorahq/sonora/releases";
+/// This build with SoundCloud updates from its own releases, never from upstream's, which would
+/// put a Sonora without SoundCloud in its place.
+const RELEASES: &str = "https://api.github.com/repos/lvyrize/sonora-soundcloud-support/releases";
 const SUMS: &str = "SHA256SUMS";
 /// What the nightly workflow puts before the version label in the nightly release's title.
 const NIGHTLY_TITLE: &str = "Nightly ";
@@ -26,7 +28,7 @@ pub const VERSION: &str = match option_env!("SONORA_VERSION") {
 const AGENT: &str = concat!(
     "sonora/",
     env!("CARGO_PKG_VERSION"),
-    " (https://github.com/sonorahq/sonora)"
+    " (https://github.com/lvyrize/sonora-soundcloud-support)"
 );
 
 /// The builds Sonora updates to. Stable follows tagged releases, and Nightly follows the build
@@ -365,7 +367,8 @@ fn wanted(channel: Channel, offered: &str) -> bool {
 }
 
 /// Splits a version into its release numbers and, for a nightly label such as
-/// `0.44.2-nightly.20261026`, the date it was built. A stable version has 0 for the date.
+/// `0.44.2-nightly.20261026`, the date it was built, or for a SoundCloud build such as
+/// `0.47.0-soundcloud.5`, its number on top of that release. A stable version has 0 there.
 fn ordered(version: &str) -> Option<(u64, u64, u64, u64)> {
     let (core, rest) = version
         .trim()
@@ -374,6 +377,7 @@ fn ordered(version: &str) -> Option<(u64, u64, u64, u64)> {
     let mut parts = core.split('.').map(|part| part.parse::<u64>().ok());
     let date = rest
         .strip_prefix("nightly.")
+        .or_else(|| rest.strip_prefix("soundcloud."))
         .and_then(|date| date.parse().ok())
         .unwrap_or(0);
     Some((parts.next()??, parts.next()??, parts.next()??, date))
