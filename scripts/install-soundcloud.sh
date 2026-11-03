@@ -4,12 +4,12 @@
 # launcher entry to ~/.local/share/applications, both of which take precedence over the system
 # ones. Run it again to update, or with --uninstall to go back to the normal Sonora.
 #
-#   curl -fsSL https://raw.githubusercontent.com/lvyrize/sonora/feat/soundcloud/scripts/install-soundcloud.sh | sh
-#   curl -fsSL https://raw.githubusercontent.com/lvyrize/sonora/feat/soundcloud/scripts/install-soundcloud.sh | sh -s -- --uninstall
+#   curl -fsSL https://raw.githubusercontent.com/lvyrize/sonora-soundcloud-support/feat/soundcloud/scripts/install-soundcloud.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/lvyrize/sonora-soundcloud-support/feat/soundcloud/scripts/install-soundcloud.sh | sh -s -- --uninstall
 
 set -eu
 
-REPO="lvyrize/sonora"
+REPO="lvyrize/sonora-soundcloud-support"
 ASSET="sonora-soundcloud-x86_64-linux.tar.gz"
 BIN_DIR="${XDG_BIN_HOME:-$HOME/.local/bin}"
 APP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
