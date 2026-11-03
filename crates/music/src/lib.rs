@@ -24,6 +24,7 @@ mod models;
 pub mod musixmatch;
 pub mod netease;
 pub mod output;
+pub mod own;
 pub mod potoken;
 pub mod progress;
 pub mod scrobble;

@@ -894,11 +894,13 @@ pub(crate) fn playlist_menu(playlist: Playlist, playback: Entity<Playback>, cx: 
     let public = playlist.public;
     let pinnable = playlist.pin();
     let imported = music::is_local_id(&playlist.id);
+    // Sonora's own playlists live only here, so they have no visibility and no link to share
+    let own = music::own::is_own_id(&playlist.id);
     let download = match imported {
         true => Vec::new(),
         false => set_download_items(Collection::Playlist, Saved::Playlist(playlist.clone()), cx),
     };
-    let visibility = (!imported).then(|| {
+    let visibility = (!imported && !own).then(|| {
         MenuItem::new(
             "playlist-visibility",
             match public {
@@ -952,7 +954,7 @@ pub(crate) fn playlist_menu(playlist: Playlist, playback: Entity<Playback>, cx: 
         vec![
             collection_queue_items(from, playback),
             actions.into_iter().chain(download).collect(),
-            match imported {
+            match imported || own {
                 true => Vec::new(),
                 false => vec![copy_link_item(
                     "copy-playlist-link",

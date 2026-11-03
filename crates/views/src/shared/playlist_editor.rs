@@ -195,7 +195,8 @@ impl PlaylistEditor {
             .session
             .read(cx)
             .capabilities_of(Shelf::of(&playlist.id))
-            .playlist_covers;
+            .playlist_covers
+            && !music::own::is_own_id(&playlist.id);
         let removable = self.cover != CoverEdit::Remove;
         div()
             .flex()

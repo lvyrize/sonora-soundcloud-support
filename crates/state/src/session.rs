@@ -922,8 +922,10 @@ impl Session {
         self.settings.update(cx, |settings, cx| {
             settings.set_provider(slug, cx);
         });
-        self.catalog = Some(Arc::new(CatalogSource::new(session.api.clone())));
-        self.client = Some(session.api);
+        // Sonora's own playlists sit in front of every service's
+        let api = music::own::wrap(session.api);
+        self.catalog = Some(Arc::new(CatalogSource::new(api.clone())));
+        self.client = Some(api);
         self.playback = Some(session.playback);
         self.shape = session.shape;
         self.authenticated = session.authenticated;
@@ -1019,8 +1021,10 @@ impl Session {
 
     fn reconnected(&mut self, session: ProviderSession, cx: &mut Context<Self>) {
         self.attempt = 0;
-        self.catalog = Some(Arc::new(CatalogSource::new(session.api.clone())));
-        self.client = Some(session.api);
+        // Sonora's own playlists sit in front of every service's
+        let api = music::own::wrap(session.api);
+        self.catalog = Some(Arc::new(CatalogSource::new(api.clone())));
+        self.client = Some(api);
         self.playback = Some(session.playback);
         self.shape = session.shape;
         self.authenticated = session.authenticated;
