@@ -1,4 +1,4 @@
-Sonora with SoundCloud support, for Linux and Windows (64-bit).
+Sonora with SoundCloud support, for Linux and Windows (64-bit). Each download is the whole of Sonora with these changes built in, so it installs on a computer that never had Sonora, and replaces a normal Sonora where there is one.
 
 What it adds to Sonora:
 

@@ -81,9 +81,16 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           set -euo pipefail
+          # the app with its launcher and icons, so it installs whole with no Sonora before it
+          stage=$(mktemp -d)
+          cp "target/$TARGET/release/sonora" "$stage/sonora"
+          cp assets/linux/sonora.desktop "$stage/sonora.desktop"
+          mkdir -p "$stage/icons/hicolor/scalable/apps"
+          cp assets/linux/sonora.svg "$stage/icons/hicolor/scalable/apps/sonora.svg"
+          cp -r assets/linux/icons/hicolor/. "$stage/icons/hicolor/"
           mkdir -p dist
           tar --owner=0 --group=0 --numeric-owner -czf dist/sonora-soundcloud-x86_64-linux.tar.gz \
-            -C "target/$TARGET/release" sonora
+            -C "$stage" .
 
       - name: install Inno Setup
         if: runner.os == 'Windows'
