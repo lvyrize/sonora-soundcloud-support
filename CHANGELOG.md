@@ -12,6 +12,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Listen to SoundCloud as a guest, or sign in to reach your likes, playlists and the artists you follow.
 - Add a second streaming service alongside the one in use, so both libraries and both searches show at once.
 - Make playlists of your own that mix songs from every service you use. They stay on this device and every song still streams.
+- See your listening stats: minutes, streams, top songs, artists and albums, and when you listen, for today, the past weeks and months, this year or all time.
 
 ### Changed
 

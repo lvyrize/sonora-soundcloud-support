@@ -27,6 +27,7 @@ number-group = { "," }
 
 # navigation
 nav-history = History
+nav-stats = Stats
 nav-home = Home
 nav-search = Search
 nav-library = Your Library
@@ -108,6 +109,8 @@ column-added-by = Added by
 column-modified = Modified
 column-length = Length
 column-plays = Plays
+column-streams = Streams
+column-listened = Time listened
 column-name = Name
 column-owner = Owner
 column-year = Year
@@ -337,6 +340,47 @@ fullscreen-panels = Now playing views
 # filters
 filter-history = Filter listening history
 history-empty = Tracks you play will appear here.
+
+# stats
+stats-spans = Time period
+stats-span-today = Today
+stats-span-week = 7 days
+stats-span-four-weeks = 4 weeks
+stats-span-month = This month
+stats-span-six-months = 6 months
+stats-span-this-year = This year
+stats-span-lifetime = All time
+stats-sections = Rankings
+stats-top-songs = Top songs
+stats-top-artists = Top artists
+stats-top-albums = Top albums
+stats-tile-minutes = Minutes listened
+stats-tile-streams = Streams
+stats-tile-songs = Songs
+stats-tile-artists = Artists
+stats-tile-albums = Albums
+stats-clock = Listening clock
+stats-clock-peak = You listen most around { $hour }
+stats-activity = Listening over time
+stats-nothing = Nothing listened to yet
+stats-hour = { $hour }:00
+stats-day = { $month } { $day }
+stats-month = { $month } { $year }
+stats-rank = #{ $rank }
+stats-rank-streams = #{ $rank } · { $line }
+stats-ranked = { $streams } · { $minutes }
+stats-minutes =
+    { $count ->
+        [one] { $count } minute
+       *[other] { $count } minutes
+    }
+stats-streams =
+    { $count ->
+        [one] { $count } stream
+       *[other] { $count } streams
+    }
+stats-empty = Nothing listened to in this period yet. A song counts once you have heard 30 seconds of it.
+stats-failed = Your stats could not be worked out.
 history-not-loaded = Listening history could not be loaded.
 history-clear = Clear history
 history-clear-title = Clear listening history

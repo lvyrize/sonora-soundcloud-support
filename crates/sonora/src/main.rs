@@ -326,6 +326,7 @@ fn open_window(cx: &mut App) {
         scrobbling: _,
         settings: _,
         signal: _,
+        stats: _,
         updates: _,
         usage: _,
         wake: _,

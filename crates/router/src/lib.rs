@@ -20,16 +20,18 @@ pub enum NavEntry {
     Search,
     Library,
     History,
+    Stats,
     Local,
     Pins,
 }
 
 impl NavEntry {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 7] = [
         Self::Home,
         Self::Search,
         Self::Library,
         Self::History,
+        Self::Stats,
         Self::Local,
         Self::Pins,
     ];
@@ -40,6 +42,7 @@ impl NavEntry {
             Self::Search => "search",
             Self::Library => "library",
             Self::History => "history",
+            Self::Stats => "stats",
             Self::Local => "local",
             Self::Pins => "sidebar-pins",
         }
@@ -51,6 +54,7 @@ impl NavEntry {
             Self::Search => "nav-search",
             Self::Library => "nav-library",
             Self::History => "nav-history",
+            Self::Stats => "nav-stats",
             Self::Local => "nav-local",
             Self::Pins => "nav-pinned",
         }
@@ -332,6 +336,8 @@ impl SettingsTab {
 pub enum Destination {
     Home,
     History,
+    /// The listening stats, worked out from what played in Sonora.
+    Stats,
     Library(LibraryTab),
     Local(LibraryTab),
     Album(SharedString),

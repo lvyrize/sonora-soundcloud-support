@@ -36,6 +36,7 @@ mod sheets;
 mod signal;
 mod snapshot;
 mod song;
+mod stats;
 mod tags;
 mod toast;
 mod updates;
@@ -89,6 +90,7 @@ pub use settings::{
 };
 pub use signal::{Change, Equalizing, FLOAT_BITS, Following, Signal, SignalPath};
 pub use song::SongDetail;
+pub use stats::{Bucket, COUNTED, Ranked, Report, Span, Stats, StatsState, Step};
 pub use tags::{TagState, Tags};
 pub use toast::{Outcome, Target, Toast, ToastAction, Toasts};
 pub use updates::{Channel, Release, UpdateState, Updates, VERSION, updates_itself};
@@ -242,6 +244,7 @@ pub struct Sonora {
     pub scrobbling: Entity<Scrobbling>,
     pub settings: Entity<AppSettings>,
     pub signal: Entity<Signal>,
+    pub stats: Entity<Stats>,
     pub updates: Entity<Updates>,
     pub usage: Entity<Usage>,
     pub wake: Entity<Wake>,
@@ -326,6 +329,15 @@ pub fn init(
     });
     let history = cx.new(|cx| {
         History::new(
+            session.clone(),
+            playback.clone(),
+            database.clone(),
+            io.clone(),
+            cx,
+        )
+    });
+    let stats = cx.new(|cx| {
+        Stats::new(
             session.clone(),
             playback.clone(),
             database.clone(),
@@ -428,6 +440,7 @@ pub fn init(
         scrobbling,
         settings,
         signal,
+        stats,
         updates,
         usage,
         wake,

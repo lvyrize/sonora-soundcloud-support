@@ -138,6 +138,25 @@ pub(crate) const PLAYLIST_COLUMNS_SHARED: &[ColumnSpec<TrackField>] =
 pub(crate) const PLAYLIST_COLUMNS_BLEND: &[ColumnSpec<TrackField>] =
     &[INDEX, COVER, TITLE, ARTISTS, ALBUM, ADDED_BY, DURATION];
 
+/// How often a ranked track was streamed, which the stats page carries in the play count.
+const STREAMS: ColumnSpec<TrackField> = ColumnSpec {
+    key: "streams",
+    header: "column-streams",
+    rank: USEFUL,
+    ..PLAYS
+};
+
+/// How long a ranked track was heard, which the stats page carries in the length.
+const LISTENED: ColumnSpec<TrackField> = ColumnSpec {
+    key: "listened",
+    header: "column-listened",
+    width: Width::Fixed(ALBUM_LENGTH),
+    ..DURATION
+};
+
+pub(crate) const STATS_COLUMNS: &[ColumnSpec<TrackField>] =
+    &[INDEX, COVER, TITLE, ARTISTS, ALBUM, STREAMS, LISTENED];
+
 pub(crate) const HISTORY_COLUMNS: &[ColumnSpec<TrackField>] =
     &[INDEX, COVER, TITLE, ARTISTS, ALBUM, PLAYED_AT, DURATION];
 

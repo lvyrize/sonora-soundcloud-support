@@ -32,6 +32,22 @@ const SCHEMA: &str = "
     );
     CREATE INDEX IF NOT EXISTS plays_scope_time
         ON plays (scope, played_at DESC);
+    CREATE TABLE IF NOT EXISTS listens (
+        provider TEXT NOT NULL,
+        track_id TEXT NOT NULL,
+        started_at INTEGER NOT NULL,
+        listened_ms INTEGER NOT NULL,
+        duration_ms INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        artists TEXT NOT NULL,
+        artist_refs TEXT NOT NULL,
+        album TEXT NOT NULL,
+        album_id TEXT,
+        cover TEXT,
+        PRIMARY KEY (track_id, started_at)
+    );
+    CREATE INDEX IF NOT EXISTS listens_time
+        ON listens (started_at);
     CREATE TABLE IF NOT EXISTS flags (
         key TEXT PRIMARY KEY,
         value INTEGER NOT NULL

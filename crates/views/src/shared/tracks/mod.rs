@@ -29,7 +29,8 @@ use crate::shared::confirm::{Confirm, Kind};
 use crate::shared::pins::{Pinned as _, origin_tag};
 
 pub(crate) use columns::{
-    HISTORY_COLUMNS, LIBRARY_COLUMNS, TrackField, album_columns, artist_columns, playlist_columns,
+    HISTORY_COLUMNS, LIBRARY_COLUMNS, STATS_COLUMNS, TrackField, album_columns, artist_columns,
+    playlist_columns,
 };
 pub(crate) use sieve::TrackSieve;
 pub(crate) use sort::initial;
